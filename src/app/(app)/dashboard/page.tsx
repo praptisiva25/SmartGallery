@@ -50,118 +50,128 @@ export default function DashboardPage() {
   };
 
   return (
-    <main style={{ padding: 24, display: "grid", gap: 16, maxWidth: 900, margin: "0 auto" }}>
-      <h2 style={{ fontSize: 20, fontWeight: 600 }}>Dashboard</h2>
+    <main className="p-6 grid gap-6 max-w-3xl mx-auto">
+  <h2 className="text-2xl font-semibold text-gray-900">Dashboard</h2>
 
-      {/* 1) pick an image */}
-      <section style={{ border: "1px solid #eee", borderRadius: 12, padding: 16 }}>
-        <h3 style={{ marginBottom: 10 }}>1) Select a picture</h3>
-        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        {preview && (
-          <div style={{ marginTop: 12 }}>
-            <img src={preview} alt="preview" style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid #eee" }} />
-          </div>
-        )}
-      </section>
+  {/* 1) pick an image */}
+  <section className="border border-gray-200 rounded-2xl p-6 bg-white shadow-sm">
+    <h3 className="mb-3 text-lg font-medium text-gray-800">1) Select a picture</h3>
+    <input
+      type="file"
+      accept="image/*"
+      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+      className="block w-full text-sm text-gray-600
+        file:mr-4 file:py-2 file:px-4
+        file:rounded-lg file:border-0
+        file:text-sm file:font-semibold
+        file:bg-indigo-50 file:text-indigo-700
+        hover:file:bg-indigo-100 cursor-pointer"
+    />
+    {preview && (
+      <div className="mt-4">
+        <img
+          src={preview}
+          alt="preview"
+          className="max-w-full rounded-xl border border-gray-200 shadow-sm"
+        />
+      </div>
+    )}
+  </section>
 
-      
-      <section style={{ border: "1px solid #eee", borderRadius: 12, padding: 16 }}>
-        <h3 style={{ marginBottom: 10 }}>2) Choose tagging</h3>
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <button
-            type="button"
-            onClick={() => setMode("ai")}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              background: mode === "ai" ? "#111" : "white",
-              color: mode === "ai" ? "white" : "black",
-            }}
-            disabled={!preview}
-          >
-            AI Tagging
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("manual")}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              background: mode === "manual" ? "#111" : "white",
-              color: mode === "manual" ? "white" : "black",
-            }}
-            disabled={!preview}
-          >
-            Manual Tagging
-          </button>
+  {/* 2) choose tagging */}
+  <section className="border border-gray-200 rounded-2xl p-6 bg-white shadow-sm">
+    <h3 className="mb-3 text-lg font-medium text-gray-800">2) Choose tagging</h3>
+    <div className="flex gap-3 mb-4">
+      <button
+        type="button"
+        onClick={() => setMode("ai")}
+        disabled={!preview}
+        className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+          mode === "ai"
+            ? "bg-indigo-600 text-white border-indigo-600"
+            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+        } ${!preview ? "opacity-50 cursor-not-allowed" : ""}`}
+      >
+        AI Tagging
+      </button>
+      <button
+        type="button"
+        onClick={() => setMode("manual")}
+        disabled={!preview}
+        className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+          mode === "manual"
+            ? "bg-indigo-600 text-white border-indigo-600"
+            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+        } ${!preview ? "opacity-50 cursor-not-allowed" : ""}`}
+      >
+        Manual Tagging
+      </button>
+    </div>
+
+    {/* AI Tags */}
+    {mode === "ai" && (
+      <div className="grid gap-3">
+        <p className="text-sm text-gray-500">
+          Suggested tags (demo): click to toggle selections.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {aiSuggestions.map((t) => {
+            const active = aiSelected.includes(t);
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() =>
+                  setAiSelected((s) =>
+                    s.includes(t) ? s.filter((x) => x !== t) : [...s, t]
+                  )
+                }
+                className={`px-3 py-1.5 rounded-full border text-xs font-medium transition ${
+                  active
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {t}
+              </button>
+            );
+          })}
         </div>
-
-        
-        {mode === "ai" && (
-          <div style={{ display: "grid", gap: 10 }}>
-            <p style={{ opacity: 0.8, margin: 0 }}>Suggested tags (demo): click to toggle selections.</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {aiSuggestions.map((t) => {
-                const active = aiSelected.includes(t);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() =>
-                      setAiSelected((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]))
-                    }
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 999,
-                      border: "1px solid #ddd",
-                      background: active ? "#111" : "white",
-                      color: active ? "white" : "black",
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
-            {!!aiSelected.length && (
-              <div style={{ fontSize: 12, opacity: 0.8 }}>Selected: {aiSelected.join(", ")}</div>
-            )}
+        {!!aiSelected.length && (
+          <div className="text-xs text-gray-500">
+            Selected: {aiSelected.join(", ")}
           </div>
         )}
+      </div>
+    )}
 
-        
-        {mode === "manual" && <ManualTagInline value={manualTags} onChange={setManualTags} />}
+    {/* Manual Tags */}
+    {mode === "manual" && <ManualTagInline value={manualTags} onChange={setManualTags} />}
 
-        {mode === "choose" && (
-          <p style={{ marginTop: 6, fontSize: 14, opacity: 0.8 }}>
-            Select a picture first, then pick <b>AI Tagging</b> or <b>Manual Tagging</b>.
-          </p>
-        )}
-      </section>
+    {mode === "choose" && (
+      <p className="mt-2 text-sm text-gray-500">
+        Select a picture first, then pick <b>AI Tagging</b> or <b>Manual Tagging</b>.
+      </p>
+    )}
+  </section>
 
-    
-      <section style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!canSave}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "1px solid #ddd",
-            background: canSave ? "#111" : "#f3f4f6",
-            color: canSave ? "white" : "#999",
-            cursor: canSave ? "pointer" : "not-allowed",
-          }}
-        >
-          Save → Library
-        </button>
-      </section>
-    </main>
+  {/* Save Button */}
+  <section className="flex justify-end">
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={!canSave}
+      className={`px-5 py-2 rounded-lg font-medium transition ${
+        canSave
+          ? "bg-indigo-600 text-white hover:bg-indigo-700"
+          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+      }`}
+    >
+      Save → Library
+    </button>
+  </section>
+</main>
+
   );
 }
 
