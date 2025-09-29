@@ -14,7 +14,7 @@ export default function TopSearch() {
         <input
           value={v}
           onChange={(e) => setV(e.target.value)}
-          placeholder="Search: 'birthday with cousins'"
+          placeholder="Search"
           className="bg-transparent outline-none w-full text-gray-700 placeholder-gray-400"
         />
       </div>

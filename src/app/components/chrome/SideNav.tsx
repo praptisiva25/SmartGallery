@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Album, Home, Library, Search, Settings, ShieldCheck,Video, Truck,HardDrive } from "lucide-react";
+import { Album, Home, Library, Search, Settings, ShieldCheck,Video, Truck,HardDrive,Camera } from "lucide-react";
 
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/library", label: "Library", icon: Library },
   { href: "/search", label: "Search", icon: Search },
   { href: "/videoediting", label: "Video Editing", icon: Video },
+  { href: "/camera", label: "Camera", icon: Camera},
   { href: "/storage", label: "Storage", icon: HardDrive},
   { href: "/settings", label: "Settings", icon: Settings },
 ];
