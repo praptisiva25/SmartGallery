@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Film,
@@ -8,33 +9,27 @@ import {
   Sparkles,
   Play,
   Pause,
-  Scissors,
   Crop,
   Gauge,
   Undo2,
-  Download,
+  Save as SaveIcon,
   Video,
 } from "lucide-react";
-
-// ---------------------------------------------
-// Frontend-only, high-fidelity prototype UI
-// Page path: /videoediting/page.tsx
-// Tech: Next.js + TypeScript + Tailwind + HTML5 video
-// Notes: No backend. “AI” is simulated via prompt parsing
-// ---------------------------------------------
+import { addToLibrary } from "@/lib/store";      // <-- uses your existing store
+import type { LibraryItem } from "@/lib/types";  // <-- same type you already use
+import { useRouter } from "next/navigation";
 
 type FilterLighting = "none" | "retro" | "cinematic" | "cool";
-
 type TabKey = "filters" | "crop" | "speed";
-
-type AIStep = {
-  label: string;
-  do: () => void;
-};
+type AIStep = { label: string; do: () => void };
 
 export default function VideoEditingPage() {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // keep original file for saving
+  const [fileObj, setFileObj] = useState<File | null>(null);
 
   // video state
   const [src, setSrc] = useState<string | null>(null);
@@ -52,7 +47,7 @@ export default function VideoEditingPage() {
 
   // Filters (Lighting)
   const [lighting, setLighting] = useState<FilterLighting>("none");
-  const [intensity, setIntensity] = useState<number>(60); // 0-100 affects filter strength
+  const [intensity, setIntensity] = useState<number>(60); // 0-100
 
   // Crop (simulated by zoom + position)
   const [zoom, setZoom] = useState<number>(1);
@@ -60,10 +55,14 @@ export default function VideoEditingPage() {
   const [offsetY, setOffsetY] = useState<number>(0); // %
   const [aspect, setAspect] = useState<string>("16:9");
 
+  // Toast/coach
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachMsg, setCoachMsg] = useState("");
+
   // Clean-up blob url
   useEffect(() => {
     return () => {
-      if (src) URL.revokeObjectURL(src);
+      if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
     };
   }, [src]);
 
@@ -88,6 +87,7 @@ export default function VideoEditingPage() {
 
   const onChooseFile = (file: File) => {
     const url = URL.createObjectURL(file);
+    setFileObj(file);
     setSrc(url);
     setIsPlaying(false);
     setLighting("none");
@@ -111,15 +111,13 @@ export default function VideoEditingPage() {
   const filterStyle = useMemo(() => {
     const k = intensity / 100; // 0..1 strength
     if (lighting === "retro") {
-      // Simple lighting hue shift for a clear RETRO look
-      // Intensity controls the amount of hue rotation + a touch of sepia/saturation
       return `hue-rotate(${30 * k}deg) sepia(${0.3 * k}) saturate(${1 + 0.2 * k})`;
     }
     if (lighting === "cinematic") {
       return `contrast(${1.1 + 0.3 * k}) saturate(${1 - 0.2 * k}) brightness(${0.98 - 0.08 * k})`;
     }
     if (lighting === "cool") {
-      return `hue-rotate(${-15 * k}deg) contrast(${1.05 + 0.2 * k}) saturate(${1.1})`;
+      return `hue-rotate(${-15 * k}deg) contrast(${1.05 + 0.2 * k}) saturate(1.1)`;
     }
     return "none";
   }, [lighting, intensity]);
@@ -168,7 +166,6 @@ export default function VideoEditingPage() {
 
     const goFiltersRetro = () => {
       setActiveTab("filters");
-      // small delay to feel like navigating
       setTimeout(() => {
         setLighting("retro");
         setIntensity(70);
@@ -180,7 +177,6 @@ export default function VideoEditingPage() {
       tips.push("Go to Settings → Filters → Lighting → choose ‘Retro’. You can adjust intensity.");
       steps.push({ label: "Apply Retro Lighting automatically", do: goFiltersRetro });
     }
-
     if (/(crop|frame|resize).*(square|1:1|instagram)/.test(p)) {
       tips.push("Use Crop tab to set aspect to 1:1 for Instagram-style square.");
       steps.push({
@@ -197,7 +193,6 @@ export default function VideoEditingPage() {
         },
       });
     }
-
     if (/(speed|faster|time-lapse|timelapse|hyperlapse)/.test(p)) {
       tips.push("Use Speed tab to increase playback rate (e.g., 1.5× or 2×).");
       steps.push({
@@ -222,17 +217,47 @@ export default function VideoEditingPage() {
     setCoachOpen(true);
     setTimeout(() => setCoachOpen(false), 1600);
   };
-  const [coachOpen, setCoachOpen] = useState(false);
-  const [coachMsg, setCoachMsg] = useState("");
+
+  // ---- SAVE TO LIBRARY (with tag: 'video') ----
+  async function saveToLibrary() {
+    if (!fileObj) {
+      flashCoach("Choose a video first");
+      return;
+    }
+
+    // Convert picked file to Data URL (persists across sessions & works in your store)
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = reject;
+      r.readAsDataURL(fileObj);
+    });
+
+    const item: LibraryItem = {
+      id: `lib_${Date.now()}`,
+      src: dataUrl,
+      title: fileObj.name || "Untitled",
+      createdAt: new Date().toISOString(),
+      tags: ["video"], // <- required tag
+      // If your LibraryItem supports extra fields, you can store edits as well:
+      // mime: fileObj.type || "video/mp4",
+      // edits: { lighting, intensity, zoom, offsetX, offsetY, aspect, playbackRate },
+    };
+
+    addToLibrary(item);
+
+    flashCoach("Saved to Library");
+    // Optional: jump user to Library after a short pause
+    setTimeout(() => {
+      // comment this line if you prefer staying on the editor
+      // router.push("/library");
+    }, 600);
+  }
 
   // ---- Helpers ----
   const fmt = (t: number) => {
-    const m = Math.floor(t / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = Math.floor(t % 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(t / 60).toString().padStart(2, "0");
+    const s = Math.floor(t % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
 
@@ -243,7 +268,8 @@ export default function VideoEditingPage() {
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <Film className="w-6 h-6" />
-          <h1 className="text-lg font-semibold">AI‑Powered Video Editing</h1>
+          <h1 className="text-lg font-semibold">AI-Powered Video Editing</h1>
+
           <div className="ml-auto flex items-center gap-2">
             <button
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border hover:bg-neutral-100"
@@ -255,10 +281,27 @@ export default function VideoEditingPage() {
                 setOffsetY(0);
                 setAspect("16:9");
                 setPlaybackRate(1);
+                setPrompt("");
+                setAiTips([]);
+                setAiSteps([]);
+                setShowCoach(false);
+                setCurrentTime(0);
+                if (videoRef.current) videoRef.current.currentTime = 0;
                 flashCoach("Reset all settings");
               }}
             >
               <Undo2 className="w-4 h-4" /> Reset
+            </button>
+
+            {/* NEW: Save to Library */}
+            <button
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-50"
+              onClick={saveToLibrary}
+              disabled={!fileObj}
+              title={!fileObj ? "Choose a video first" : "Save to Library"}
+            >
+              <SaveIcon className="w-4 h-4" />
+              Save to Library
             </button>
           </div>
         </div>
@@ -268,7 +311,6 @@ export default function VideoEditingPage() {
       <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-12 gap-6">
         {/* Left: Player & prompt */}
         <section className="col-span-12 lg:col-span-8">
-          {/* Uploader */}
           {!src ? (
             <div className="border-2 border-dashed border-neutral-300 rounded-2xl bg-white p-10 text-center">
               <Upload className="w-10 h-10 mx-auto mb-3" />
@@ -298,7 +340,9 @@ export default function VideoEditingPage() {
                   <button className="p-1 rounded-full hover:bg-neutral-100" onClick={togglePlay}>
                     {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   </button>
-                  <span className="text-xs tabular-nums">{fmt(currentTime)} / {fmt(duration)}</span>
+                  <span className="text-xs tabular-nums">
+                    {fmt(currentTime)} / {fmt(duration)}
+                  </span>
                 </div>
               </div>
 
@@ -347,7 +391,9 @@ export default function VideoEditingPage() {
                               <button
                                 className="w-full text-left px-3 py-2 rounded-lg border hover:bg-neutral-50"
                                 onClick={s.do}
-                              >{s.label}</button>
+                              >
+                                {s.label}
+                              </button>
                             </li>
                           ))}
                         </ul>

@@ -6,6 +6,10 @@ import { getLibrary } from "@/lib/store";
 import type { LibraryItem } from "@/lib/types";
 import MediaEditor from "../../components/MediaEditor";
 
+function isVideoItem(it: LibraryItem) {
+  return it.src.startsWith("data:video/") || it.tags?.includes("video");
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -14,11 +18,9 @@ export default function SearchPage() {
   const [query, setQuery] = useState<string>(searchParams.get("q") ?? "");
   const [active, setActive] = useState<LibraryItem | null>(null);
 
-  
   const load = () => setAll(getLibrary());
   useEffect(() => { load(); }, []);
 
- 
   useEffect(() => {
     setQuery(searchParams.get("q") ?? "");
   }, [searchParams]);
@@ -26,7 +28,6 @@ export default function SearchPage() {
   const results = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
     if (!q) return all;
-
     const tokens = q.split(/[,\s]+/).filter(Boolean);
     return all.filter((it) => {
       const hay = `${it.title ?? ""} ${it.tags.join(" ")}`.toLowerCase();
@@ -76,27 +77,47 @@ export default function SearchPage() {
             Showing {results.length} of {all.length} items
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-            {results.map((it) => (
-              <button
-                key={it.id}
-                onClick={() => setActive(it)}
-                style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden", padding: 0, textAlign: "left", background: "white", cursor: "pointer" }}
-              >
-                <img src={it.src} alt={it.title || "image"} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }} />
-                <div style={{ padding: 10 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {it.title || "Untitled"}
+            {results.map((it) => {
+              const video = isVideoItem(it);
+              return (
+                <button
+                  key={it.id}
+                  onClick={() => setActive(it)}
+                  style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden", padding: 0, textAlign: "left", background: "white", cursor: "pointer" }}
+                >
+                  {video ? (
+                    <video
+                      src={it.src}
+                      muted
+                      loop
+                      playsInline
+                      // show a preview; remove controls to keep cards tidy
+                      style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", background: "#000" }}
+                      onMouseOver={(e) => (e.currentTarget as HTMLVideoElement).play().catch(() => {})}
+                      onMouseOut={(e) => (e.currentTarget as HTMLVideoElement).pause()}
+                    />
+                  ) : (
+                    <img
+                      src={it.src}
+                      alt={it.title || "image"}
+                      style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }}
+                    />
+                  )}
+                  <div style={{ padding: 10 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {it.title || "Untitled"}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {it.tags.map((t) => (
+                        <span key={t} style={{ fontSize: 12, padding: "4px 8px", border: "1px solid #ddd", borderRadius: 999 }}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {it.tags.map((t) => (
-                      <span key={t} style={{ fontSize: 12, padding: "4px 8px", border: "1px solid #ddd", borderRadius: 999 }}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </>
       )}
@@ -105,7 +126,7 @@ export default function SearchPage() {
         item={active}
         onClose={() => setActive(null)}
         onChanged={() => {
-          load(); 
+          load();
         }}
       />
     </main>

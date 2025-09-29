@@ -6,7 +6,6 @@ import type { LibraryItem } from "@/lib/types";
 
 export default function LibraryPage() {
   const [items, setItems] = useState<LibraryItem[]>([]);
-
   const load = () => setItems(getLibrary());
 
   useEffect(() => {
@@ -37,7 +36,7 @@ export default function LibraryPage() {
 
       {items.length === 0 ? (
         <p style={{ opacity: 0.8 }}>
-          No items yet. Go to the Dashboard, select a photo, tag it, and save.
+          No items yet. Go to the Dashboard or Editor, select a file, and save.
         </p>
       ) : (
         <div
@@ -47,47 +46,73 @@ export default function LibraryPage() {
             gap: 12,
           }}
         >
-          {items.map((it) => (
-            <div
-              key={it.id}
-              style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}
-            >
-              <img
-                src={it.src}
-                alt={it.title || "image"}
-                style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }}
-              />
-              <div style={{ padding: 10 }}>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    marginBottom: 6,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {it.title || "Untitled"}
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {it.tags.map((t) => (
-                    <span
-                      key={t}
-                      style={{
-                        fontSize: 12,
-                        padding: "4px 8px",
-                        border: "1px solid #ddd",
-                        borderRadius: 999,
-                      }}
-                    >
-                      {t}
-                    </span>
-                  ))}
+          {items.map((it) => {
+            const isVideo = it.src.startsWith("data:video/") || it.tags.includes("video");
+            return (
+              <div
+                key={it.id}
+                style={{
+                  border: "1px solid #eee",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  background: "#fff",
+                }}
+              >
+                {isVideo ? (
+                  <video
+                    src={it.src}
+                    controls
+                    style={{
+                      width: "100%",
+                      aspectRatio: "16/9",
+                      objectFit: "cover",
+                      background: "#000",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={it.src}
+                    alt={it.title || "image"}
+                    style={{
+                      width: "100%",
+                      aspectRatio: "4/3",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+
+                <div style={{ padding: 10 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      marginBottom: 6,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {it.title || "Untitled"}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {it.tags.map((t) => (
+                      <span
+                        key={t}
+                        style={{
+                          fontSize: 12,
+                          padding: "4px 8px",
+                          border: "1px solid #ddd",
+                          borderRadius: 999,
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>
