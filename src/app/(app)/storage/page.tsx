@@ -15,6 +15,7 @@ import {
 // /storage/page.tsx — Next.js + TypeScript + Tailwind (Frontend Only)
 // Static demo (no uploads): shows storage overview with dummy counts
 // and Declutter Recommendations with 4 similar images ready to delete.
+// Uses images served from the Next.js `/public` folder.
 // ------------------------------------------------------------
 
 // Dummy storage stats
@@ -37,29 +38,30 @@ function uid(prefix = "id") {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// Pre-seeded "very similar" images (same base photo; variants/resize/grayscale)
+// Pre-seeded "very similar" images (NOW from public folder)
+// Place these files in: /public/images/rec1.jpg ... rec4.jpg
 const INITIAL_RECS = [
   {
     id: uid("rec"),
-    url: "https://picsum.photos/id/237/640/420", // keep (best)
+    url: "/images/IMG_237_A.jpg", // keep (best)
     name: "IMG_237_A.jpg",
     size: 865_000,
   },
   {
     id: uid("rec"),
-    url: "https://picsum.photos/id/237/640/420?grayscale",
+    url: "/images/IMG_237_B.jpg",
     name: "IMG_237_B.jpg",
     size: 612_000,
   },
   {
     id: uid("rec"),
-    url: "https://picsum.photos/id/237/320/210",
+    url: "/images/IMG_237_C.jpg",
     name: "IMG_237_C.jpg",
     size: 310_000,
   },
   {
     id: uid("rec"),
-    url: "https://picsum.photos/id/237/640/420?blur=1",
+    url: "/images/IMG_237_D.jpg",
     name: "IMG_237_D.jpg",
     size: 598_000,
   },
@@ -72,15 +74,25 @@ export default function StoragePage() {
     Object.fromEntries(INITIAL_RECS.map((r, i) => [r.id, i !== 0]))
   );
 
-  const usedPct = useMemo(() => Math.min(100, (USED_BYTES / QUOTA_BYTES) * 100), []);
+  const usedPct = useMemo(
+    () => Math.min(100, (USED_BYTES / QUOTA_BYTES) * 100),
+    []
+  );
 
-  const toggle = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const toggle = (id: string) =>
+    setSelected((s) => ({ ...s, [id]: !s[id] }));
 
   const deleteSelected = () => {
-    const ids = new Set(Object.entries(selected).filter(([, v]) => v).map(([k]) => k));
+    const ids = new Set(
+      Object.entries(selected)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+    );
     if (ids.size === 0) return;
     setRecs((prev) => prev.filter((r) => !ids.has(r.id)));
-    setSelected((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => !ids.has(k))));
+    setSelected((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([k]) => !ids.has(k)))
+    );
   };
 
   return (
@@ -103,13 +115,32 @@ export default function StoragePage() {
             </span>
           </div>
           <div className="h-3 bg-neutral-100 rounded-full overflow-hidden">
-            <div className="h-full bg-neutral-900" style={{ width: `${usedPct.toFixed(2)}%` }} />
+            <div
+              className="h-full bg-neutral-900"
+              style={{ width: `${usedPct.toFixed(2)}%` }}
+            />
           </div>
           <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard icon={<ImageIcon className="w-4 h-4" />} label="Photos" value={STATS.photos.toLocaleString()} />
-            <StatCard icon={<VideoIcon className="w-4 h-4" />} label="Videos" value={STATS.videos.toLocaleString()} />
-            <StatCard icon={<Folder className="w-4 h-4" />} label="Albums" value={STATS.albums.toLocaleString()} />
-            <StatCard icon={<CheckCircle2 className="w-4 h-4" />} label="Duplicates flagged" value={recs.length.toString()} />
+            <StatCard
+              icon={<ImageIcon className="w-4 h-4" />}
+              label="Photos"
+              value={STATS.photos.toLocaleString()}
+            />
+            <StatCard
+              icon={<VideoIcon className="w-4 h-4" />}
+              label="Videos"
+              value={STATS.videos.toLocaleString()}
+            />
+            <StatCard
+              icon={<Folder className="w-4 h-4" />}
+              label="Albums"
+              value={STATS.albums.toLocaleString()}
+            />
+            <StatCard
+              icon={<CheckCircle2 className="w-4 h-4" />}
+              label="Duplicates flagged"
+              value={recs.length.toString()}
+            />
           </div>
           <div className="mt-2 text-xs text-neutral-500 flex items-center gap-2">
             <Info className="w-4 h-4" />
@@ -121,7 +152,9 @@ export default function StoragePage() {
         <section className="bg-white border rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <h2 className="font-semibold">Declutter Recommendations</h2>
-            <span className="text-sm text-neutral-600">We found {recs.length} similar items</span>
+            <span className="text-sm text-neutral-600">
+              We found {recs.length} similar items
+            </span>
           </div>
 
           {recs.length === 0 ? (
@@ -132,11 +165,23 @@ export default function StoragePage() {
             <>
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
                 {recs.map((m, idx) => (
-                  <label key={m.id} className="relative block border rounded-lg overflow-hidden group cursor-pointer">
-                    <img src={m.url} alt={m.name} className="w-full h-44 object-cover" />
+                  <label
+                    key={m.id}
+                    className="relative block border rounded-lg overflow-hidden group cursor-pointer"
+                  >
+                    {/* IMPORTANT: images are served from /public */}
+                    <img
+                      src={m.url}
+                      alt={m.name}
+                      className="w-full h-44 object-cover"
+                    />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-black/0 text-white p-2 text-xs">
-                      <div className="truncate" title={m.name}>{m.name}</div>
-                      <div className="opacity-80">{idx === 0 ? "Best quality (keep)" : "Suggested delete"}</div>
+                      <div className="truncate" title={m.name}>
+                        {m.name}
+                      </div>
+                      <div className="opacity-80">
+                        {idx === 0 ? "Best quality (keep)" : "Suggested delete"}
+                      </div>
                     </div>
                     <input
                       type="checkbox"
@@ -151,7 +196,9 @@ export default function StoragePage() {
               <div className="mt-4 flex items-center justify-end gap-2">
                 <button
                   className="px-4 py-2 rounded-xl border hover:bg-neutral-50"
-                  onClick={() => setSelected(Object.fromEntries(recs.map((r, i) => [r.id, i !== 0])))}
+                  onClick={() =>
+                    setSelected(Object.fromEntries(recs.map((r, i) => [r.id, i !== 0])))
+                  }
                 >
                   Select All Suggested
                 </button>
@@ -171,7 +218,15 @@ export default function StoragePage() {
   );
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-3 border rounded-xl p-3">
       <div className="shrink-0 rounded-lg border p-2">{icon}</div>
